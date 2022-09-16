@@ -4,20 +4,20 @@
  * Module dependencies.
  */
 
-var InvalidArgumentError = require('../../lib/errors/invalid-argument-error');
-var Promise = require('bluebird');
-var Request = require('../../lib/request');
-var Response = require('../../lib/response');
-var Server = require('../../lib/server');
-var should = require('should');
+const InvalidArgumentError = require('../../lib/errors/invalid-argument-error');
+const Promise = require('bluebird');
+const Request = require('../../lib/request');
+const Response = require('../../lib/response');
+const Server = require('../../lib/server');
+const should = require('should');
 
 /**
  * Test `Server` integration.
  */
 
-describe('Server integration', function() {
-  describe('constructor()', function() {
-    it('should throw an error if `model` is missing', function() {
+describe('Server integration', function () {
+  describe('constructor()', function () {
+    it('should throw an error if `model` is missing', function () {
       try {
         new Server({});
 
@@ -28,30 +28,30 @@ describe('Server integration', function() {
       }
     });
 
-    it('should set the `model`', function() {
-      var model = {};
-      var server = new Server({ model: model });
+    it('should set the `model`', function () {
+      const model = {};
+      const server = new Server({ model: model });
 
       server.options.model.should.equal(model);
     });
   });
 
-  describe('authenticate()', function() {
-    it('should set the default `options`', function() {
-      var model = {
-        getAccessToken: function() {
+  describe('authenticate()', function () {
+    it('should set the default `options`', function () {
+      const model = {
+        getAccessToken: function () {
           return {
             user: {},
             accessTokenExpiresAt: new Date(new Date().getTime() + 10000)
           };
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: {}, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: {} });
-      var response = new Response({ body: {}, headers: {} });
+      const server = new Server({ model: model });
+      const request = new Request({ body: {}, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: {} });
+      const response = new Response({ body: {}, headers: {} });
 
       return server.authenticate(request, response)
-        .then(function() {
+        .then(function () {
           this.addAcceptedScopesHeader.should.be.true;
           this.addAuthorizedScopesHeader.should.be.true;
           this.allowBearerTokensInQueryString.should.be.false;
@@ -59,178 +59,216 @@ describe('Server integration', function() {
         .catch(should.fail);
     });
 
-    it('should return a promise', function() {
-      var model = {
-        getAccessToken: function(token, callback) {
+    it('should return a promise', function () {
+      const model = {
+        getAccessToken: function (token, callback) {
           callback(null, {
             user: {},
             accessTokenExpiresAt: new Date(new Date().getTime() + 10000)
           });
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: {}, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: {} });
-      var response = new Response({ body: {}, headers: {} });
-      var handler = server.authenticate(request, response);
+
+      const server = new Server({ model: model });
+      const request = new Request({ body: {}, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: {} });
+      const response = new Response({ body: {}, headers: {} });
+      const handler = server.authenticate(request, response);
 
       handler.should.be.an.instanceOf(Promise);
     });
 
-    it('should support callbacks', function(next) {
-      var model = {
-        getAccessToken: function() {
+    it('should support callbacks', function (next) {
+      const model = {
+        getAccessToken: function () {
           return {
             user: {},
             accessTokenExpiresAt: new Date(new Date().getTime() + 10000)
           };
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: {}, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: {} });
-      var response = new Response({ body: {}, headers: {} });
+      const server = new Server({ model: model });
+      const request = new Request({ body: {}, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: {} });
+      const response = new Response({ body: {}, headers: {} });
 
       server.authenticate(request, response, null, next);
     });
   });
 
-  describe('authorize()', function() {
-    it('should set the default `options`', function() {
-      var model = {
-        getAccessToken: function() {
+  describe('authorize()', function () {
+    it('should set the default `options`', function () {
+      const model = {
+        getAccessToken: function () {
           return {
             user: {},
             accessTokenExpiresAt: new Date(new Date().getTime() + 10000)
           };
         },
-        getClient: function() {
+        getClient: function () {
           return { grants: ['authorization_code'], redirectUris: ['http://example.com/cb'] };
         },
-        saveAuthorizationCode: function() {
+        saveAuthorizationCode: function () {
           return { authorizationCode: 123 };
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: { client_id: 1234, client_secret: 'secret', response_type: 'code' }, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: { state: 'foobar' } });
-      var response = new Response({ body: {}, headers: {} });
+      const server = new Server({ model: model });
+      const request = new Request({
+        body: { client_id: 1234, client_secret: 'secret', response_type: 'code' },
+        headers: { 'Authorization': 'Bearer foo' }, method: {}, query: { state: 'foobar' }
+      });
+      const response = new Response({ body: {}, headers: {} });
 
       return server.authorize(request, response)
-        .then(function() {
+        .then(function () {
           this.allowEmptyState.should.be.false;
           this.authorizationCodeLifetime.should.equal(300);
         })
         .catch(should.fail);
     });
 
-    it('should return a promise', function() {
-      var model = {
-        getAccessToken: function() {
+    it('should return a promise', function () {
+      const model = {
+        getAccessToken: function () {
           return {
             user: {},
             accessTokenExpiresAt: new Date(new Date().getTime() + 10000)
           };
         },
-        getClient: function() {
+        getClient: function () {
           return { grants: ['authorization_code'], redirectUris: ['http://example.com/cb'] };
         },
-        saveAuthorizationCode: function() {
+        saveAuthorizationCode: function () {
           return { authorizationCode: 123 };
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: { client_id: 1234, client_secret: 'secret', response_type: 'code' }, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: { state: 'foobar' } });
-      var response = new Response({ body: {}, headers: {} });
-      var handler = server.authorize(request, response);
+      const server = new Server({ model: model });
+      const request = new Request({
+        body: { client_id: 1234, client_secret: 'secret', response_type: 'code' },
+        headers: { 'Authorization': 'Bearer foo' },
+        method: {},
+        query: { state: 'foobar' }
+      });
+      const response = new Response({ body: {}, headers: {} });
+      const handler = server.authorize(request, response);
 
       handler.should.be.an.instanceOf(Promise);
     });
 
-    it('should support callbacks', function(next) {
-      var model = {
-        getAccessToken: function() {
+    it('should support callbacks', function (next) {
+      const model = {
+        getAccessToken: function () {
           return {
             user: {},
             accessTokenExpiresAt: new Date(new Date().getTime() + 10000)
           };
         },
-        getClient: function() {
+        getClient: function () {
           return { grants: ['authorization_code'], redirectUris: ['http://example.com/cb'] };
         },
-        saveAuthorizationCode: function() {
+        saveAuthorizationCode: function () {
           return { authorizationCode: 123 };
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: { client_id: 1234, client_secret: 'secret', response_type: 'code' }, headers: { 'Authorization': 'Bearer foo' }, method: {}, query: { state: 'foobar' } });
-      var response = new Response({ body: {}, headers: {} });
+      const server = new Server({ model: model });
+      const request = new Request({
+        body: { client_id: 1234, client_secret: 'secret', response_type: 'code' },
+        headers: { 'Authorization': 'Bearer foo' },
+        method: {},
+        query: { state: 'foobar' }
+      });
+      const response = new Response({ body: {}, headers: {} });
 
       server.authorize(request, response, null, next);
     });
   });
 
-  describe('token()', function() {
-    it('should set the default `options`', function() {
-      var model = {
-        getClient: function() {
+  describe('token()', function () {
+    it('should set the default `options`', function () {
+      const model = {
+        getClient: function () {
           return { grants: ['password'] };
         },
-        getUser: function() {
+        getUser: function () {
           return {};
         },
-        saveToken: function() {
+        saveToken: function () {
           return { accessToken: 1234, client: {}, user: {} };
         },
-        validateScope: function() { return 'foo'; }
+        validateScope: function () {
+          return 'foo';
+        }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: { client_id: 1234, client_secret: 'secret', grant_type: 'password', username: 'foo', password: 'pass', scope: 'foo' }, headers: { 'content-type': 'application/x-www-form-urlencoded', 'transfer-encoding': 'chunked' }, method: 'POST', query: {} });
-      var response = new Response({ body: {}, headers: {} });
+      const server = new Server({ model: model });
+      const request = new Request({
+        body: {
+          client_id: 1234,
+          client_secret: 'secret',
+          grant_type: 'password',
+          username: 'foo',
+          password: 'pass',
+          scope: 'foo'
+        },
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'transfer-encoding': 'chunked' },
+        method: 'POST',
+        query: {}
+      });
 
+      const response = new Response({ body: {}, headers: {} });
       return server.token(request, response)
-        .then(function() {
+        .then(function () {
           this.accessTokenLifetime.should.equal(3600);
           this.refreshTokenLifetime.should.equal(1209600);
         })
         .catch(should.fail);
     });
 
-    it('should return a promise', function() {
-      var model = {
-        getClient: function() {
+    it('should return a promise', function () {
+      const model = {
+        getClient: function () {
           return { grants: ['password'] };
         },
-        getUser: function() {
+        getUser: function () {
           return {};
         },
-        saveToken: function() {
+        saveToken: function () {
           return { accessToken: 1234, client: {}, user: {} };
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: { client_id: 1234, client_secret: 'secret', grant_type: 'password', username: 'foo', password: 'pass' }, headers: { 'content-type': 'application/x-www-form-urlencoded', 'transfer-encoding': 'chunked' }, method: 'POST', query: {} });
-      var response = new Response({ body: {}, headers: {} });
-      var handler = server.token(request, response);
+      const server = new Server({ model: model });
+      const request = new Request({
+        body: { client_id: 1234, client_secret: 'secret', grant_type: 'password', username: 'foo', password: 'pass' },
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'transfer-encoding': 'chunked' },
+        method: 'POST',
+        query: {}
+      });
+      const response = new Response({ body: {}, headers: {} });
+      const handler = server.token(request, response);
 
       handler.should.be.an.instanceOf(Promise);
     });
 
-    it('should support callbacks', function(next) {
-      var model = {
-        getClient: function() {
+    it('should support callbacks', function (next) {
+      const model = {
+        getClient: function () {
           return { grants: ['password'] };
         },
-        getUser: function() {
+        getUser: function () {
           return {};
         },
-        saveToken: function() {
+        saveToken: function () {
           return { accessToken: 1234, client: {}, user: {} };
         },
-        validateScope: function() {
-            return 'foo';
+        validateScope: function () {
+          return 'foo';
         }
       };
-      var server = new Server({ model: model });
-      var request = new Request({ body: { client_id: 1234, client_secret: 'secret', grant_type: 'password', username: 'foo', password: 'pass', scope: 'foo' }, headers: { 'content-type': 'application/x-www-form-urlencoded', 'transfer-encoding': 'chunked' }, method: 'POST', query: {} });
-      var response = new Response({ body: {}, headers: {} });
+      const server = new Server({ model: model });
+      const request = new Request({
+        body: { client_id: 1234, client_secret: 'secret', grant_type: 'password', username: 'foo', password: 'pass', scope: 'foo' },
+        headers: { 'content-type': 'application/x-www-form-urlencoded', 'transfer-encoding': 'chunked' },
+        method: 'POST',
+        query: {}
+      });
+      const response = new Response({ body: {}, headers: {} });
 
       server.token(request, response, null, next);
     });
